@@ -40,7 +40,11 @@ export function createStore(storage) {
     loadConfig: function () {
       const parsed = readJson(storage, CONFIG_KEY);
       if (!parsed || parsed.version !== CONFIG_VERSION || !Array.isArray(parsed.kids)) {
-        return defaultConfig();
+        // First run (or unreadable data): persist the defaults so task ids
+        // stay stable across reloads and check-offs keep matching.
+        const fresh = defaultConfig();
+        writeJson(storage, CONFIG_KEY, fresh);
+        return fresh;
       }
       return parsed;
     },

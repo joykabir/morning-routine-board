@@ -44,3 +44,9 @@ test('a storage that throws on setItem does not break load or save', () => {
   assert.doesNotThrow(() => s.saveDone('2026-10-08', {}));
   assert.equal(s.loadConfig().kids.length, 2);
 });
+test('loadConfig persists the defaults so ids are stable across loads', () => {
+  const f = fake(); const s = createStore(f);
+  const first = s.loadConfig();
+  assert.deepEqual(createStore(f).loadConfig(), first);
+  assert.ok(f.getItem(CONFIG_KEY));
+});
