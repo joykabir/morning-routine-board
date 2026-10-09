@@ -34,3 +34,9 @@ test('one column per kid, kid object passed through', () => {
   const cfg = { version: 1, kids: [kid([]), { ...kid([]), id: 'k2', name: 'B' }] };
   assert.deepEqual(boardColumns(cfg, {}, THU).map(c => c.kid.name), ['A', 'B']);
 });
+test('a removed task no longer appears even if its check-off remains', () => {
+  const a = t('a'), b = t('b');
+  const [col] = boardColumns({ version: 1, kids: [kid([b])] }, { [a.id]: true }, THU);
+  assert.deepEqual(col.tiles.map(x => x.task.label), ['b']);
+  assert.equal(col.state, 'tasks');
+});

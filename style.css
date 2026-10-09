@@ -191,3 +191,173 @@ body {
 #gear[hidden] { display: none; }
 
 #gear:active { opacity: 0.5; }
+
+/* ---- Settings ---- */
+
+#settings {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px 24px 60px;
+  background: var(--bg);
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+#settings[hidden] { display: none; }
+
+.settings-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.settings-title {
+  margin: 0;
+  font-size: 32px;
+}
+
+.btn {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  background: #e9e1d4;
+  color: var(--ink);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:active { opacity: 0.7; }
+.btn-primary { background: var(--ok); color: #fff; }
+.btn-done { font-size: 22px; padding: 0 28px; }
+.btn-quiet { background: transparent; }
+.btn-danger { background: #f3d9d4; color: #9b2c1c; }
+
+.kid-card {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 16px;
+  margin-bottom: 20px;
+  box-shadow: var(--card-shadow);
+}
+
+.kid-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.text-input {
+  min-height: 44px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 12px;
+  border: 2px solid #e4dccf;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 20px;
+  color: var(--ink);
+  background: #fff;
+}
+
+.name-input { font-size: 26px; font-weight: 700; }
+
+.color-input {
+  width: 56px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid #e4dccf;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.emoji-btn {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 auto;
+  border: 2px solid #e4dccf;
+  border-radius: 14px;
+  background: #fff;
+  font-size: 32px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.avatar-btn { width: 64px; height: 64px; font-size: 38px; }
+
+.task-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid #efe8dd;
+}
+
+.add-row { border-top: 2px dashed #e4dccf; margin-top: 6px; }
+
+.days { display: flex; gap: 4px; flex: 0 0 auto; }
+
+.day {
+  min-width: 48px;
+  height: 44px;
+  border: 2px solid #e4dccf;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--muted);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.day.on {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: #fff;
+}
+
+.row-actions { display: flex; gap: 6px; margin-left: auto; }
+
+.picker {
+  flex: 1 0 100%;
+  background: #faf6ef;
+  border: 2px solid #e4dccf;
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.picker-emoji {
+  height: 52px;
+  border: 0;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.picker-emoji:active { background: #e9e1d4; }
+
+.picker-custom { display: flex; gap: 8px; align-items: center; }
+.picker-input { flex: 1 1 auto; min-height: 44px; padding: 0 12px; border: 2px solid #e4dccf; border-radius: 12px; font: inherit; font-size: 20px; }
+
+.settings-danger {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
