@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createStore, CONFIG_KEY, DONE_KEY } from '../src/store.js';
+import { createStore, safeStorage, CONFIG_KEY, DONE_KEY } from '../src/store.js';
 import { defaultConfig, CONFIG_VERSION } from '../src/model.js';
 
 const fake = () => { const m = new Map(); return {
@@ -49,4 +49,15 @@ test('loadConfig persists the defaults so ids are stable across loads', () => {
   const first = s.loadConfig();
   assert.deepEqual(createStore(f).loadConfig(), first);
   assert.ok(f.getItem(CONFIG_KEY));
+});
+test('safeStorage falls back to an in-memory store when the accessor throws', () => {
+  const s = safeStorage(() => { throw new Error('SecurityError'); });
+  s.setItem('k', 'v');
+  assert.equal(s.getItem('k'), 'v');
+  s.removeItem('k');
+  assert.equal(s.getItem('k'), null);
+});
+test('safeStorage returns the real storage when the accessor works', () => {
+  const real = fake();
+  assert.equal(safeStorage(() => real), real);
 });

@@ -67,3 +67,24 @@ export function createStore(storage) {
     }
   };
 }
+
+// Returns the storage produced by `getStorage()`, or an in-memory stand-in
+// when merely accessing it throws (iOS Safari with "Block All Cookies",
+// some private-mode configurations). The board then works for the session
+// and simply forgets on relaunch.
+export function safeStorage(getStorage) {
+  try {
+    const storage = getStorage();
+    if (storage) return storage;
+  } catch (e) {
+    // Fall through to the in-memory store.
+  }
+  const memory = {};
+  return {
+    getItem: function (key) {
+      return Object.prototype.hasOwnProperty.call(memory, key) ? memory[key] : null;
+    },
+    setItem: function (key, value) { memory[key] = String(value); },
+    removeItem: function (key) { delete memory[key]; }
+  };
+}

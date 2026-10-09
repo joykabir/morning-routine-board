@@ -1,7 +1,7 @@
 // Entry point: owns state, wires storage, board, settings and the day rollover.
 
 import { boardDate, msUntilNextBoardDay } from './day.js';
-import { createStore } from './store.js';
+import { createStore, safeStorage } from './store.js';
 import { boardColumns } from './view.js';
 import { renderBoard } from './board.js';
 import { renderSettings } from './settings.js';
@@ -10,7 +10,7 @@ const boardRoot = document.getElementById('board');
 const settingsRoot = document.getElementById('settings');
 const gear = document.getElementById('gear');
 
-const store = createStore(window.localStorage);
+const store = createStore(safeStorage(function () { return window.localStorage; }));
 let config = store.loadConfig();
 let today = boardDate(new Date());
 let done = store.loadDone(today);
@@ -105,34 +105,16 @@ longPress(gear, 2000, openSettings);
 
 document.addEventListener('visibilitychange', function () {
   if (document.visibilityState === 'visible') refreshDay();
-
-if ('serviceWorker' in navigator) {
-  try {
-    navigator.serviceWorker.register('./sw.js');
-  } catch (e) {
-    // Offline caching is a nicety; the board works without it.
-  }
-}
 });
 window.addEventListener('pageshow', function () { refreshDay(); });
 setInterval(function () {
   if (boardDate(new Date()) !== today) refreshDay();
-
-if ('serviceWorker' in navigator) {
-  try {
-    navigator.serviceWorker.register('./sw.js');
-  } catch (e) {
-    // Offline caching is a nicety; the board works without it.
-  }
-}
 }, 60 * 1000);
 
 refreshDay();
 
 if ('serviceWorker' in navigator) {
-  try {
-    navigator.serviceWorker.register('./sw.js');
-  } catch (e) {
-    // Offline caching is a nicety; the board works without it.
-  }
+  // Offline caching is a nicety; the board works without it. The promise
+  // rejects on a plain-HTTP preview, so swallow that too.
+  navigator.serviceWorker.register('./sw.js').catch(function () {});
 }
