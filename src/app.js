@@ -105,10 +105,34 @@ longPress(gear, 2000, openSettings);
 
 document.addEventListener('visibilitychange', function () {
   if (document.visibilityState === 'visible') refreshDay();
+
+if ('serviceWorker' in navigator) {
+  try {
+    navigator.serviceWorker.register('./sw.js');
+  } catch (e) {
+    // Offline caching is a nicety; the board works without it.
+  }
+}
 });
 window.addEventListener('pageshow', function () { refreshDay(); });
 setInterval(function () {
   if (boardDate(new Date()) !== today) refreshDay();
+
+if ('serviceWorker' in navigator) {
+  try {
+    navigator.serviceWorker.register('./sw.js');
+  } catch (e) {
+    // Offline caching is a nicety; the board works without it.
+  }
+}
 }, 60 * 1000);
 
 refreshDay();
+
+if ('serviceWorker' in navigator) {
+  try {
+    navigator.serviceWorker.register('./sw.js');
+  } catch (e) {
+    // Offline caching is a nicety; the board works without it.
+  }
+}

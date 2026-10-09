@@ -1,0 +1,11 @@
+{
+  "name": "Morning Board",
+  "short_name": "Morning Board",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#fbf6ee",
+  "theme_color": "#fbf6ee",
+  "icons": []
+}
