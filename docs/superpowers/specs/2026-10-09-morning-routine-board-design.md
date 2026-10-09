@@ -1,7 +1,7 @@
 # Morning Routine Board — Design
 
 Date: 2026-10-09
-Status: draft, awaiting approval
+Status: awaiting approval
 
 ## Intent
 
@@ -48,8 +48,12 @@ This is not a personal habit tracker. It is for the kids, not the parent.
 - Data lives only in the tablet's browser (local storage). Nothing is sent to
   any server.
 - Must keep working with no internet after the first load.
-- Must work in a tablet browser in landscape, full screen, with large tap
-  targets usable by a 7-year-old holding toast.
+- The tablet is an older iPad running Safari. Must work in landscape, full
+  screen, with large tap targets usable by a 7-year-old holding toast.
+- The page is opened once by URL, then added to the Home Screen so it runs
+  standalone without browser chrome. Build and test for that mode on iPad
+  Safari specifically (iOS standalone meta tags, suppressing the long-press
+  text callout on the gear, surviving the tablet sleeping and waking).
 - The parent does not care about the stack and asked for the simplest thing.
 
 ## How it is built (decided)
@@ -64,10 +68,14 @@ simplest."
 - **Offline.** A service worker caches the page so it loads with no network,
   plus a web app manifest so "Add to Home Screen" opens it full screen without
   browser chrome.
-- **Hosting.** Static files, deployable to GitHub Pages from this repo. The
-  same folder can be served from any computer in the house instead if the
-  parent wants nothing on the internet at all. Either way no data leaves the
-  tablet; hosting only delivers the page.
+- **Hosting.** GitHub Pages from this repo is the deployment target. The
+  parent confirmed the repo may be public; it contains only the page, never
+  any data. Pages provides the HTTPS that offline caching and Home Screen
+  install require. Serving the folder from a computer at home is possible but
+  is a degraded fallback (no offline caching over plain HTTP), not a supported
+  target. Either way no data leaves the tablet; hosting only delivers the page.
+- Use relative paths throughout so the page works under the Pages
+  subdirectory URL.
 - **Pictures are emoji.** Every task has an emoji chosen from a built-in
   palette in settings (toothbrush, shirt, backpack, dog, and so on). Each kid
   has a name, a color, and an emoji avatar. No image uploads.
