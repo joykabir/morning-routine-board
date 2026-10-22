@@ -3,7 +3,7 @@
 // Bump CACHE whenever any file changes. The new version installs on the next
 // load after deploy and takes over on the launch after that.
 
-const CACHE = 'mrb-v1';
+const CACHE = 'mrb-v2';
 const ASSETS = [
   './',
   './index.html',
