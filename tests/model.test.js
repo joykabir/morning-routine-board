@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultConfig, createTask, tasksForDay, updateKid, addTask, removeTask,
-         updateTask, moveTask, newId, WEEKDAYS, CONFIG_VERSION } from '../src/model.js';
+         updateTask, moveTask, newId, WEEKDAYS, CONFIG_VERSION,
+         MAX_REOPENS_PER_DAY, canReopen, recordReopen, kidIdForTask } from '../src/model.js';
 
 test('default config has two placeholder kids with tasks', () => {
   const c = defaultConfig();
@@ -56,4 +57,22 @@ test('moveTask moves within a kid and clamps at the ends', () => {
   const [a, b] = c.kids[0].tasks;
   assert.deepEqual(moveTask(c, b.id, -1).kids[0].tasks.slice(0, 2).map(t => t.id), [b.id, a.id]);
   assert.equal(moveTask(c, a.id, -1), c);
+});
+test('kidIdForTask finds the kid that owns a task', () => {
+  const c = defaultConfig();
+  assert.equal(kidIdForTask(c, c.kids[1].tasks[0].id), c.kids[1].id);
+  assert.equal(kidIdForTask(c, 'missing'), null);
+});
+test('a kid may reopen a finished day at most MAX_REOPENS_PER_DAY times per board-day', () => {
+  assert.equal(MAX_REOPENS_PER_DAY, 3);
+  assert.equal(canReopen({}, 'k'), true);
+  assert.equal(canReopen({ k: 2 }, 'k'), true);
+  assert.equal(canReopen({ k: 3 }, 'k'), false);
+  assert.equal(canReopen({ k: 3 }, 'other'), true);
+});
+test('recordReopen adds one to the kid count without mutating the input', () => {
+  const before = { k: 1 };
+  assert.deepEqual(recordReopen(before, 'k'), { k: 2 });
+  assert.deepEqual(recordReopen(before, 'j'), { k: 1, j: 1 });
+  assert.deepEqual(before, { k: 1 });
 });

@@ -48,10 +48,10 @@ export function renderBoard(root, columns, onToggle) {
     const section = el('section', 'kid');
     section.appendChild(renderHeader(column.kid));
     if (column.state === 'nothing') {
-      section.appendChild(renderBanner('nothing', '', 'Nothing today'));
+      section.appendChild(renderBanner('nothing', '🎈', 'Free day today!'));
     } else {
       if (column.state === 'all-done') {
-        section.appendChild(renderBanner('all-done', '✓', 'All done'));
+        section.appendChild(renderBanner('all-done', '🎉', 'All done! Great job!'));
       }
       section.appendChild(renderTiles(column.tiles, onToggle));
     }

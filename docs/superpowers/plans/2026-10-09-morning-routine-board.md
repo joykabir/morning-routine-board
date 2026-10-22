@@ -1,12 +1,12 @@
 # Morning Routine Board Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** implement this plan task by task, using the process skills your environment provides (for example, test-driven development and verification before completion). Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** A single static web page, run on a wall-mounted iPad, that shows two kids their remaining morning tasks as big emoji tiles they tap off themselves, resetting every morning, with a hidden settings screen for the parent.
 
 **Architecture:** Plain ES modules with no build step. Pure logic (day boundary, config model, storage, board view-model) lives in small modules under `src/` and is unit-tested with Node's built-in test runner. Two thin DOM modules (board, settings) render from those, and `src/app.js` wires them to `localStorage`, the long-press gear, and the day rollover. A service worker and manifest make it an offline Home Screen app on iPad Safari. Deployed to GitHub Pages.
 
-**Tech Stack:** HTML, CSS, JavaScript (ES modules), `localStorage`, service worker, Node 22 `node --test` for tests, GitHub Pages for hosting. Zero npm dependencies.
+**Tech Stack:** HTML, CSS, JavaScript (ES modules), `localStorage`, service worker, Node 18 or newer, `node --test` for tests, GitHub Pages for hosting. Zero npm dependencies.
 
 **Spec:** `docs/superpowers/specs/2026-10-09-morning-routine-board-design.md`
 
@@ -15,15 +15,14 @@
 - No framework, no build step, no server-side code, no npm dependencies (a `package.json` exists only to run `node --test`).
 - Target is an older iPad running Safari. Write JavaScript that runs on Safari 12: no optional chaining (`?.`), no nullish coalescing (`??`), no class fields, no `Array.prototype.at`, no `String.prototype.replaceAll`, no `structuredClone`, no `crypto.randomUUID`. ES modules and `const`/`let`/arrow functions are fine.
 - All URLs in HTML, CSS, the manifest and the service worker are relative (`./x`), never root-relative, so the page works under the GitHub Pages subdirectory.
-- Data lives only in `localStorage` under keys `mrb.config` and `mrb.done`. Nothing is ever sent to a server.
+- Data lives only in `localStorage` under keys `mrb.config`, `mrb.done` and `mrb.reopens`. Nothing is ever sent to a server.
 - Board-day starts at 03:00 local time. Weekday toggles default Mon–Fri on, Sat–Sun off.
 - Settings opens by holding the gear for 2000 ms. A plain tap does nothing.
-- Copy fixed by the spec: column shows "All done" with a big check when every task is done; "Nothing today" when there are no tasks for today.
-- No streaks, scores, history, rewards, or anything about previous days, anywhere in the UI or the stored data.
-- Every commit message ends with these two lines:
+- Copy (overrides the spec): the column shows a big check and "All done! Great job!" when every task is done; "Free day today!" when there are no tasks for today.
+- No streaks, scores, history, rewards, or anything about previous days, anywhere in the UI or the stored data. The one exception is today's reopen count per kid (`mrb.reopens`, Task 9). It is a limit, not a history, and it is cleared at the board-day boundary.
+- Every commit message ends with this line:
   ```
-  Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
-  Claude-Session: https://claude.ai/code/session_01XdY797UqS6HAQGFRKrKU2V
+  Co-Authored-By: Claude Haiku 5.5
   ```
 
 ## Review Focus
@@ -33,6 +32,7 @@
 - **`localStorage` throws** (Safari private mode, quota). Saving must fail quietly and the board must keep working for the session. Test in Task 3.
 - **The iPad slept overnight with the page open.** When the page becomes visible again on a new board-day, every tile must show undone without a reload. Covered by Task 3's date-keyed `loadDone` and Task 5's visibility handler; manual check in Task 5.
 - **A task with a blank or whitespace label, or a task removed while checked off.** Blank labels are rejected; removing a task drops its check-off. Tests in Task 2 and Task 6.
+- **Reopen limit.** The fourth untick on an "All done" column in one board-day is ignored, and the count resets at 03:00. Tests in Task 9.
 
 ## File Structure
 
@@ -61,6 +61,8 @@ Data shapes (used by every task):
             tasks: [ { id: string, label: string, emoji: string, days: boolean[7] /* Mon..Sun */ } ] } ] }
 // Done (today's check-offs)
 { date: 'YYYY-MM-DD', done: { [taskId]: true } }
+// Reopens (today's reopen count per kid, Task 9)
+{ date: 'YYYY-MM-DD', reopens: { [kidId]: number } }
 // Column (view-model)
 { kid: Kid, state: 'tasks' | 'all-done' | 'nothing', tiles: [ { task: Task, done: boolean } ] }
 ```
@@ -215,7 +217,7 @@ Expected: FAIL, cannot find module `../src/model.js`.
 
 - [ ] **Step 3: Implement `src/model.js`**
 
-`defaultConfig()` returns two kids (`Kid 1` fox 🦊 in one color, `Kid 2` panda 🐼 in another) each with the same five default tasks: Get dressed 👕, Brush teeth 🪥, Eat breakfast 🥣, Pack bag 🎒, Feed the dog 🐶, all on `WEEKDAYS`. Every task and kid gets a fresh `newId()`. `newId` is `Date.now().toString(36) + Math.random().toString(36).slice(2, 8)`. `moveTask` returns the same config object when the move would go out of range.
+`defaultConfig()` returns two kids (`Kid 1` butterfly 🦋 in `#3b8ee8`, `Kid 2` penguin 🐧 in `#2d3436`) each with the same six default tasks in this order: Prayer 🤲, Eat breakfast 🥣, Brush teeth 🪥, Get dressed 👕, Pack bag 🎒, Hug 🤗, all on `WEEKDAYS`. Every task and kid gets a fresh `newId()`. `newId` is `Date.now().toString(36) + Math.random().toString(36).slice(2, 8)`. `moveTask` returns the same config object when the move would go out of range.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
@@ -239,7 +241,7 @@ git commit -m "feat: config model with kids and tasks"
 
 **Interfaces:**
 - Consumes: `defaultConfig`, `CONFIG_VERSION` from `src/model.js`.
-- Produces: `CONFIG_KEY = 'mrb.config'`, `DONE_KEY = 'mrb.done'`; `createStore(storage): Store` where `storage` is anything with `getItem(key)`, `setItem(key, value)`, `removeItem(key)` (i.e. `localStorage` or a test fake). `Store` has `loadConfig(): Config`, `saveConfig(config): void`, `loadDone(dateStr): { [taskId]: true }`, `saveDone(dateStr, done): void`, `clearAll(): void`.
+- Produces: `CONFIG_KEY = 'mrb.config'`, `DONE_KEY = 'mrb.done'`, `REOPENS_KEY = 'mrb.reopens'`; `createStore(storage): Store` where `storage` is anything with `getItem(key)`, `setItem(key, value)`, `removeItem(key)` (i.e. `localStorage` or a test fake). `Store` has `loadConfig(): Config`, `saveConfig(config): void`, `loadDone(dateStr): { [taskId]: true }`, `saveDone(dateStr, done): void`, `loadReopens(dateStr): { [kidId]: number }`, `saveReopens(dateStr, reopens): void`, `clearAll(): void` (removes all three keys).
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -407,21 +409,21 @@ Landscape full-screen shell: `<meta name="viewport" content="width=device-width,
 Decisions the spec pins; the rest is the builder's taste (warm and quiet, not a scoreboard):
 - `html, body { height: 100%; margin: 0; overflow: hidden; }` and `body { touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }` so there is no double-tap zoom and no long-press text callout on iPad.
 - `#board` is a two-column grid filling the viewport. Each column header shows avatar and name in the kid's color.
-- Tiles are at least 120px tall with the emoji at roughly 64px and the label at 24px or more. Done tiles are at reduced opacity and visually muted. "All done" and "Nothing today" are centered, large, with the check at least 96px.
+- Tiles are at least 120px tall with the emoji at roughly 64px and the label at 24px or more. Done tiles are at reduced opacity and visually muted. "All done! Great job!" and "Free day today!" are centered, large, with the check at least 96px.
 - `#gear` is small, low-contrast, fixed in the bottom-right corner.
 
 - [ ] **Step 3: Implement `src/board.js`**
 
-`renderBoard` builds one `<section class="kid">` per column with a header and, by `state`: a `<ul class="tiles">` of `<li><button class="tile" data-task-id>` (with class `done` when done) for `'tasks'`; the same list plus an "All done ✅" banner for `'all-done'`; or a "Nothing today" message for `'nothing'`. Clicking a tile calls `onToggle(taskId)`. Use `click` events; `touch-action: manipulation` makes them fire without delay on iOS.
+`renderBoard` builds one `<section class="kid">` per column with a header and, by `state`: a `<ul class="tiles">` of `<li><button class="tile" data-task-id>` (with class `done` when done) for `'tasks'`; the same list plus a 🎉 "All done! Great job!" banner for `'all-done'`; or a 🎈 "Free day today!" message for `'nothing'`. Clicking a tile calls `onToggle(taskId)`. Use `click` events; `touch-action: manipulation` makes them fire without delay on iOS.
 
 - [ ] **Step 4: Implement `src/app.js`**
 
-State: `config`, `done`, `today` (date string), `store = createStore(window.localStorage)`. `render()` computes `boardColumns(config, done, today)` and calls `renderBoard`. `toggle(taskId)` flips `done[taskId]`, saves via `store.saveDone(today, done)`, re-renders. `refreshDay()` sets `today = boardDate(new Date())`, loads `done = store.loadDone(today)`, re-renders, and arms `setTimeout(refreshDay, msUntilNextBoardDay(new Date()))`. Also call `refreshDay` on `visibilitychange` (when visible) and `pageshow`, and from a 60 s `setInterval` guard that calls it only when `boardDate(new Date()) !== today`.
+State: `config`, `done`, `today` (date string), `store = createStore(window.localStorage)`. `render()` computes `boardColumns(config, done, today)` and calls `renderBoard`. `toggle(taskId)` flips `done[taskId]`, saves via `store.saveDone(today, done)`, re-renders. The reopen limit is added in Task 9. `refreshDay()` sets `today = boardDate(new Date())`, loads `done = store.loadDone(today)`, re-renders, and arms `setTimeout(refreshDay, msUntilNextBoardDay(new Date()))`. Also call `refreshDay` on `visibilitychange` (when visible) and `pageshow`, and from a 60 s `setInterval` guard that calls it only when `boardDate(new Date()) !== today`.
 
 - [ ] **Step 5: Verify in a browser**
 
 Run: `python3 -m http.server 8080` from the repo root, open `http://localhost:8080/` in a browser (use the claude-in-chrome tools if available, otherwise do it by hand).
-Expected: two columns with placeholder names and five emoji tiles each; tapping a tile fades it and moves it to the bottom; tapping it again restores it; checking all five shows "All done" with a big check; reloading the page keeps the check-offs. In DevTools, set `localStorage.setItem('mrb.done', JSON.stringify({date:'2000-01-01', done:{}}))` and reload: all tiles show undone.
+Expected: two columns with placeholder names and six emoji tiles each; tapping a tile fades it and moves it to the bottom; tapping it again restores it; checking all six shows "All done! Great job!" with a big check; reloading the page keeps the check-offs. In DevTools, set `localStorage.setItem('mrb.done', JSON.stringify({date:'2000-01-01', done:{}}))` and reload: all tiles show undone.
 
 - [ ] **Step 6: Run the unit tests**
 
@@ -445,7 +447,7 @@ git commit -m "feat: board screen with daily reset"
 
 **Interfaces:**
 - Consumes: all `src/model.js` operations; `DAY_NAMES`, `WEEKDAYS`.
-- Produces: `EMOJI_PALETTE: string[]` in `src/emoji.js` (a few dozen morning-routine emoji: 👕🪥🥣🎒🐶🧦👟🧥🚿🛏️🪮💊🍎💧📚🧴🩱🎒🥪🚲 and more, builder's choice). `renderSettings(root: HTMLElement, config: Config, handlers: { onChange(config: Config): void, onDone(): void, onReset(): void }): void` in `src/settings.js`. `longPress(el: HTMLElement, ms: number, fn: () => void): void` in `src/app.js`.
+- Produces: `EMOJI_PALETTE: string[]` in `src/emoji.js` (a few dozen morning-routine emoji: 👕🪥🥣🎒🐶🧦👟🧥🚿🛏️🪮💊🍎💧📚🧴🩱🎒🥪🚲 and more. The shipped palette also includes 🌈 🐬 🦚 🐞. 🦚 is Unicode 11 and may not render on iOS 12. `renderSettings(root: HTMLElement, config: Config, handlers: { onChange(config: Config): void, onDone(): void, onReset(): void }): void` in `src/settings.js`. `longPress(el: HTMLElement, ms: number, fn: () => void): void` in `src/app.js`.
 
 - [ ] **Step 1: Add a regression test for a removed task that was checked off**
 
@@ -479,7 +481,7 @@ Readable at arm's length on the tablet: inputs at least 44px tall, day toggles c
 - [ ] **Step 6: Verify in a browser**
 
 Run: `python3 -m http.server 8080`, open the page.
-Expected: a plain tap on the gear does nothing; holding it two seconds opens settings. Rename a kid, change their color and avatar, add "Swim kit" with Thursday only, move it up, remove "Feed the dog", press Done: the board reflects every change and the removed task's tile is gone. Check off a task, open settings, remove that task, press Done, then re-add a task with the same label: it shows undone. Reset everything (confirm) returns to the placeholder kids.
+Expected: a plain tap on the gear does nothing; holding it two seconds opens settings. Rename a kid, change their color and avatar, add "Swim kit" with Thursday only, move it up, remove "Hug", press Done: the board reflects every change and the removed task's tile is gone. Check off a task, open settings, remove that task, press Done, then re-add a task with the same label: it shows undone. Reset everything (confirm) returns to the placeholder kids.
 
 - [ ] **Step 7: Run the unit tests**
 
@@ -557,11 +559,9 @@ git add README.md .nojekyll
 git commit -m "docs: README with iPad setup and deploy notes"
 ```
 
-- [ ] **Step 4: Create the public GitHub repo and push**
+- [ ] **Step 4: Push to the fork**
 
-Confirm the repo name with the parent if it has not been given; default `morning-routine-board`.
-Run: `gh repo create morning-routine-board --public --source=. --remote=origin --push`
-Expected: `main` is pushed.
+The repo is published as a fork at `joykabir/morning-routine-board`, and `origin` points to it over SSH. Do not run `gh repo create`; the repo already exists. Push with `git push origin main`.
 
 - [ ] **Step 5: Enable Pages from the `main` branch root**
 
@@ -573,3 +573,36 @@ Expected: JSON with `html_url`. Wait a minute, then `curl -sI <html_url>` return
 Open the Pages URL in a browser: the board renders, the service worker registers (DevTools › Application), and all asset URLs resolve under the repo subpath with no 404s in the console.
 
 - [ ] **Step 7: Report the URL** to the parent along with the iPad setup steps from the README.
+
+---
+
+### Task 9: Reopen limit and current defaults
+
+These changes were made after Task 8. They describe the current behavior, and where they conflict with Tasks 2, 3, 5, or 6, this task wins. The spec (`docs/superpowers/specs/`) is the original design record and still describes the old copy, the five-task default list, and unlimited undo. It was not changed.
+
+**Files:**
+- Modify: `src/model.js`, `src/store.js`, `src/app.js`, `src/board.js`, `src/emoji.js`, `sw.js`
+- Test: `tests/model.test.js`, `tests/store.test.js`
+
+**Rule:** A kid's column is "All done" when every task shown today is ticked. The untick that takes a column out of "All done" is a reopen. Each kid may reopen at most 3 times per board-day. Unticks after the column is already unfinished do not count. Ticking is unlimited while a column is unfinished, and ticking a task again after a reopen does not count. Once the limit is reached, further unticks on that column are ignored until the board-day boundary at 03:00 or "Reset everything".
+
+**Interfaces:**
+- Produces in `src/model.js`: `MAX_REOPENS_PER_DAY = 3`; `kidIdForTask(config, taskId): string | null`; `canReopen(reopens, kidId): boolean`; `recordReopen(reopens, kidId)`, which returns a new object.
+- Produces in `src/store.js`: `REOPENS_KEY = 'mrb.reopens'`; `loadReopens(dateStr)` and `saveReopens(dateStr, reopens)`, which work like `loadDone` and `saveDone` and return `{}` for any other date. `clearAll()` removes all three keys.
+
+**Tests (written first, then the code):**
+- `canReopen` is true below 3 and false at 3, and one kid's count does not affect another kid.
+- `recordReopen` returns a new object and leaves its input unchanged.
+- `kidIdForTask` returns the owner's id, or `null` for an unknown task.
+- `loadReopens` returns counts only for the stored date, and `clearAll` removes `mrb.reopens`.
+
+**Wiring (`src/app.js`, not unit-tested):** `toggle(taskId)` checks whether the kid's column is "All done" and the task is ticked. If so, it returns early when `canReopen` is false, and otherwise records the reopen with `recordReopen`. `done` and `reopens` are saved on each change. `refreshDay` and the reset handler reload `reopens` along with `done`.
+
+**Current defaults and copy:**
+- Default kids: `Kid 1` butterfly 🦋 (`#3b8ee8`), `Kid 2` penguin 🐧 (`#2d3436`).
+- Default tasks, in order: Prayer 🤲, Eat breakfast 🥣, Brush teeth 🪥, Get dressed 👕, Pack bag 🎒, Hug 🤗.
+- Banner copy: 🎉 "All done! Great job!" and 🎈 "Free day today!".
+- The emoji palette adds 🌈, 🐬, 🦚, and 🐞.
+- Defaults reach a device only on a fresh install or after "Reset everything". A deploy does not change data already on the device.
+
+**Manual check on the iPad:** Tick all six tasks. Untick one task and tick it again, three times. The fourth untick is ignored. Next morning, the count is back to zero.

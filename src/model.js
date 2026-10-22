@@ -23,11 +23,12 @@ export function createTask(label, emoji, days) {
 
 function defaultTasks() {
   return [
-    createTask('Get dressed', '👕'),
-    createTask('Brush teeth', '🪥'),
+    createTask('Prayer', '🤲'),
     createTask('Eat breakfast', '🥣'),
+    createTask('Brush teeth', '🪥'),
+    createTask('Get dressed', '👕'),
     createTask('Pack bag', '🎒'),
-    createTask('Feed the dog', '🐶')
+    createTask('Hug', '🤗')
   ];
 }
 
@@ -35,10 +36,27 @@ export function defaultConfig() {
   return {
     version: CONFIG_VERSION,
     kids: [
-      { id: newId(), name: 'Kid 1', color: '#e8743b', avatar: '🦊', tasks: defaultTasks() },
-      { id: newId(), name: 'Kid 2', color: '#3b8ee8', avatar: '🐼', tasks: defaultTasks() }
+      { id: newId(), name: 'Kid 1', color: '#3b8ee8', avatar: '🦋', tasks: defaultTasks() },
+      { id: newId(), name: 'Kid 2', color: '#2d3436', avatar: '🐧', tasks: defaultTasks() }
     ]
   };
+}
+
+export const MAX_REOPENS_PER_DAY = 3;
+
+export function kidIdForTask(config, taskId) {
+  const owner = config.kids.find(k => k.tasks.some(t => t.id === taskId));
+  return owner ? owner.id : null;
+}
+
+export function canReopen(reopens, kidId) {
+  return (reopens[kidId] || 0) < MAX_REOPENS_PER_DAY;
+}
+
+export function recordReopen(reopens, kidId) {
+  const next = Object.assign({}, reopens);
+  next[kidId] = (next[kidId] || 0) + 1;
+  return next;
 }
 
 export function tasksForDay(kid, weekday) {

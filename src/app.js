@@ -2,6 +2,7 @@
 
 import { boardDate, msUntilNextBoardDay } from './day.js';
 import { createStore, safeStorage } from './store.js';
+import { canReopen, recordReopen, kidIdForTask } from './model.js';
 import { boardColumns } from './view.js';
 import { renderBoard } from './board.js';
 import { renderSettings } from './settings.js';
@@ -14,25 +15,38 @@ const store = createStore(safeStorage(function () { return window.localStorage; 
 let config = store.loadConfig();
 let today = boardDate(new Date());
 let done = store.loadDone(today);
+let reopens = store.loadReopens(today);
 let rolloverTimer = null;
 
 function render() {
   renderBoard(boardRoot, boardColumns(config, done, today), toggle);
 }
 
+function isAllDone(kidId) {
+  const column = boardColumns(config, done, today).find(function (c) { return c.kid.id === kidId; });
+  return column !== undefined && column.state === 'all-done';
+}
+
 function toggle(taskId) {
+  const kidId = kidIdForTask(config, taskId);
+  if (kidId === null) return;
+  const reopening = done[taskId] === true && isAllDone(kidId);
+  if (reopening && !canReopen(reopens, kidId)) return;
   if (done[taskId]) {
     delete done[taskId];
   } else {
     done[taskId] = true;
   }
+  if (reopening) reopens = recordReopen(reopens, kidId);
   store.saveDone(today, done);
+  store.saveReopens(today, reopens);
   render();
 }
 
 function refreshDay() {
   today = boardDate(new Date());
   done = store.loadDone(today);
+  reopens = store.loadReopens(today);
   render();
   if (rolloverTimer !== null) clearTimeout(rolloverTimer);
   rolloverTimer = setTimeout(refreshDay, msUntilNextBoardDay(new Date()));
@@ -68,6 +82,7 @@ const settingsHandlers = {
     store.clearAll();
     config = store.loadConfig();
     done = store.loadDone(today);
+    reopens = store.loadReopens(today);
     settingsHandlers.onDone();
   }
 };

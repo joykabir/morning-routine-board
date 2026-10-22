@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createStore, safeStorage, CONFIG_KEY, DONE_KEY } from '../src/store.js';
+import { createStore, safeStorage, CONFIG_KEY, DONE_KEY, REOPENS_KEY } from '../src/store.js';
 import { defaultConfig, CONFIG_VERSION } from '../src/model.js';
 
 const fake = () => { const m = new Map(); return {
@@ -32,10 +32,18 @@ test('saveDone for a new date discards the old day', () => {
   s.saveDone('2026-10-08', { a: true }); s.saveDone('2026-10-09', { b: true });
   assert.deepEqual(JSON.parse(f.getItem(DONE_KEY)), { date: '2026-10-09', done: { b: true } });
 });
-test('clearAll removes both keys', () => {
+test('clearAll removes config, check-offs and reopen counts', () => {
   const f = fake(); const s = createStore(f);
-  s.saveConfig(defaultConfig()); s.saveDone('2026-10-08', {}); s.clearAll();
+  s.saveConfig(defaultConfig()); s.saveDone('2026-10-08', {}); s.saveReopens('2026-10-08', { k: 1 });
+  s.clearAll();
   assert.equal(f.getItem(CONFIG_KEY), null); assert.equal(f.getItem(DONE_KEY), null);
+  assert.equal(f.getItem(REOPENS_KEY), null);
+});
+test('loadReopens returns counts only for the stored date', () => {
+  const s = createStore(fake());
+  s.saveReopens('2026-10-08', { k: 3 });
+  assert.deepEqual(s.loadReopens('2026-10-08'), { k: 3 });
+  assert.deepEqual(s.loadReopens('2026-10-09'), {});
 });
 test('a storage that throws on setItem does not break load or save', () => {
   const f = fake(); f.setItem = () => { throw new Error('quota'); };

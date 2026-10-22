@@ -8,6 +8,7 @@ import { defaultConfig, CONFIG_VERSION } from './model.js';
 
 export const CONFIG_KEY = 'mrb.config';
 export const DONE_KEY = 'mrb.done';
+export const REOPENS_KEY = 'mrb.reopens';
 
 function readJson(storage, key) {
   try {
@@ -61,9 +62,20 @@ export function createStore(storage) {
     saveDone: function (dateStr, done) {
       writeJson(storage, DONE_KEY, { date: dateStr, done: done });
     },
+    loadReopens: function (dateStr) {
+      const parsed = readJson(storage, REOPENS_KEY);
+      if (!parsed || parsed.date !== dateStr || typeof parsed.reopens !== 'object' || parsed.reopens === null) {
+        return {};
+      }
+      return parsed.reopens;
+    },
+    saveReopens: function (dateStr, reopens) {
+      writeJson(storage, REOPENS_KEY, { date: dateStr, reopens: reopens });
+    },
     clearAll: function () {
       remove(storage, CONFIG_KEY);
       remove(storage, DONE_KEY);
+      remove(storage, REOPENS_KEY);
     }
   };
 }
